@@ -5,10 +5,13 @@ permissions:
 jobs:
   replay:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
+        with: { python-version: "${{ matrix.python }}" }
       - name: unit tests (verifiers, reward tokens, board claim rules)
         run: cargo test --locked
       - name: replay the committed run from this clone (seed 68) and compare the report
@@ -24,12 +27,12 @@ jobs:
           $B verify-token --key "$KEY" "$TOK"
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: replay, path: runs/replay }
+        with: { name: "replay-py${{ matrix.python }}", path: runs/replay }
       - name: assemble the page with the verified report
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && matrix.python == '3.13'
         run: mkdir -p _site && cp -r web/* _site/ && cp proof/report.json proof/cheats.jsonl _site/
       - uses: actions/upload-pages-artifact@v3
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && matrix.python == '3.13'
         with: { path: _site }
   pages:
     if: github.ref == 'refs/heads/main'

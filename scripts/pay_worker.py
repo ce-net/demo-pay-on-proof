@@ -48,8 +48,10 @@ def solve(a, b):
                 m[r][k] -= f * m[c][k]
     x = [0.0] * n
     for r in range(n - 1, -1, -1):
-        s = m[r][n] - sum(m[r][k] * x[k] for k in range(r + 1, n))
-        x[r] = s / m[r][r]
+        t = 0.0  # a plain left-to-right loop: sum() rounds differently from Python 3.12 on
+        for k in range(r + 1, n):
+            t += m[r][k] * x[k]
+        x[r] = (m[r][n] - t) / m[r][r]
     return x
 
 
