@@ -1,0 +1,3 @@
+{"job": "j-03", "kind": "hash", "how": "range shifted by one byte"}
+{"job": "j-11", "kind": "solve", "how": "first unknown off by 0.1%"}
+{"job": "j-20", "kind": "sort", "how": "one number replaced by its neighbour"}

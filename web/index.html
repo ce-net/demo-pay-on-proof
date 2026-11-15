@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pay on proof</title>
+<meta name="description" content="Work that pays only when it checks out. 50 jobs, two workers, one of them rigged; every result checked, every wrong answer caught, rewards only for passes.">
+<meta property="og:title" content="Pay on proof"><meta property="og:description" content="Work that pays only when it checks out: every result checked, every wrong answer caught.">
+<meta name="theme-color" content="#070807">
+<link rel="icon" href="https://design.ce-net.com/v1/logo/ce-net-favicon-dark.svg" type="image/svg+xml">
+<script>try{if(localStorage.getItem("ce-theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="components.css">
+<style>
+body{background:var(--bg);margin:0}
+.wrap{max-width:var(--max);margin:0 auto;padding:var(--s-6) var(--m) var(--s-8)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);margin-bottom:var(--s-6)}
+.brand{font:400 13px var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);text-decoration:none}
+.tog,.act{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--ink-2);font:500 10.5px var(--mono);
+  letter-spacing:.08em;text-transform:uppercase;padding:8px 10px;cursor:pointer;min-height:36px}
+.tog:hover,.act:hover{color:var(--ink)}
+.lede{max-width:44em;color:var(--ink-2);margin:0 0 var(--s-4)}
+.status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-3);font:400 11px var(--mono);color:var(--ink-3);margin:0 0 var(--s-5)}
+.status b{color:var(--ink-2);font-weight:500}
+.stats{margin-bottom:var(--s-5)}
+.workers{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:var(--s-5)}
+.wk{padding:14px 16px}
+.wk .num{font-variant-numeric:tabular-nums}
+.wk .spark{display:block;width:100%;height:46px;margin-top:10px}
+.wk .spark path{fill:none;stroke-width:1.4}
+.wk .spark .base{stroke:var(--line)}
+.wk .hist{display:flex;flex-wrap:wrap;gap:2px;margin-top:8px}
+.wk .hist i{width:7px;height:7px;background:var(--ok)}
+.wk .hist i.r{background:var(--bad)}
+h2{font:500 9.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:var(--s-5) 0 var(--s-3)}
+.grid50{display:grid;grid-template-columns:repeat(25,1fr);gap:3px;padding:12px}
+.grid50 button{aspect-ratio:1;border:1px solid var(--line);background:transparent;border-radius:1px;padding:0;cursor:pointer;min-width:0}
+.grid50 button.taken{border-color:var(--acc)}
+.grid50 button.paid{background:var(--ok);border-color:var(--ok)}
+.grid50 button.rejected{background:var(--bad);border-color:var(--bad)}
+.grid50 button[aria-pressed=true]{outline:1px solid var(--ink);outline-offset:1px}
+.rows{max-height:420px;overflow:auto}
+.rows table{width:100%;border-collapse:collapse;font:400 11px var(--mono);font-variant-numeric:tabular-nums}
+.rows th{position:sticky;top:0;background:var(--panel);text-align:left;font:500 9px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);padding:8px 10px;border-bottom:1px solid var(--line)}
+.rows td{padding:7px 10px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top}
+.rows tr{cursor:pointer}
+.rows tr:hover td{color:var(--ink)}
+.rows tr[aria-selected=true] td{background:var(--acc-soft);color:var(--ink)}
+.v{font-weight:600;letter-spacing:.06em}
+.v.paid{color:var(--ok)}.v.rejected{color:var(--bad)}.v.open,.v.taken{color:var(--ink-3)}
+.inj{color:var(--bad);font-size:10px}
+.detail{padding:14px 16px;font:400 11px var(--mono);color:var(--ink-2);word-break:break-all}
+.detail b{color:var(--ink);font-weight:500}
+.detail code{display:block;margin-top:8px;color:var(--ink-3);max-height:96px;overflow:auto}
+.foot{margin-top:var(--s-7);font:400 11px var(--mono);color:var(--ink-3);display:flex;flex-wrap:wrap;gap:var(--s-4)}
+.foot a{color:var(--ink-2)}
+@media (max-width:700px){.wrap{padding:var(--s-4) 16px var(--s-7)}.workers{grid-template-columns:1fr}
+  .grid50{grid-template-columns:repeat(10,1fr)}.rows .hide{display:none}.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><a class="brand" href="https://ce-net.github.io/demos/">ce-net</a>
+<button class="tog" type="button" id="tog" aria-label="Switch between dark and light">Light</button></header>
+
+<div class="crumb">ce-net / Demos / <b>Pay on proof</b></div>
+<h1 class="display">Pay on proof.</h1>
+<p class="lede">A requester posts 50 jobs: hash a file range, sort a shard, solve a small system. Two workers take them. One is honest; the other is rigged to return a wrong answer about one time in ten. A cheap verifier checks every result. Only a pass gets a signed, single-use reward token.</p>
+<div class="status" id="status"><span>Loading the run</span></div>
+
+<div class="stats">
+  <div class="glass ticks stat"><div class="label"><i></i>Results checked</div>
+    <div class="num acc" id="s-checked">0<small>/ 50</small></div><div class="sub" id="s-checked-sub">by job.check</div></div>
+  <div class="glass stat has-ring"><div><div class="label"><i class="g"></i>Rewards issued</div>
+    <div class="num" id="s-paid">0</div><div class="sub" id="s-paid-sub">signed tokens</div></div>
+    <svg class="ring g" viewBox="0 0 36 36" aria-hidden="true"><circle class="bg" cx="18" cy="18" r="15"/>
+      <circle class="fg" id="ring-paid" cx="18" cy="18" r="15" stroke-dasharray="94.25" stroke-dashoffset="94.25"/></svg></div>
+  <div class="glass stat"><div class="label"><i class="r"></i>Rejected</div>
+    <div class="num" id="s-rej">0</div><div class="sub" id="s-rej-sub">no token issued</div></div>
+</div>
+
+<div class="workers" id="workers"></div>
+
+<h2>The 50 jobs</h2>
+<div class="glass"><div class="grid50" id="grid" role="group" aria-label="Jobs"></div></div>
+
+<h2>Every result and its verdict</h2>
+<div class="glass rows"><table><thead><tr><th>Job</th><th>Kind</th><th>Worker</th><th class="hide">Check</th><th>Verdict</th></tr></thead>
+<tbody id="rows"></tbody></table></div>
+<div class="glass detail" id="detail" style="margin-top:6px">Pick a job to see its check and its reward token.</div>
+
+<footer class="foot"><span>Apache-2.0</span><a href="https://github.com/ce-net/demo-pay-on-proof">Source and proof</a><a href="report.json" id="rep">report.json</a><a href="https://ce-net.github.io/demos/">All demos</a></footer>
+</div>
+<script>
+(function(){
+var r=document.documentElement,tog=document.getElementById("tog");
+function setT(){tog.textContent=r.dataset.theme==="light"?"Dark":"Light"}setT();
+tog.addEventListener("click",function(){var l=r.dataset.theme!=="light";if(l)r.dataset.theme="light";else delete r.dataset.theme;
+try{localStorage.setItem("ce-theme",l?"light":"dark")}catch(e){}setT()});
+
+var $=function(id){return document.getElementById(id)};
+var data=null,shown=0,live=false,cheats={},sel=null,timer=null;
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+// Report mode replays the jobs in order; live mode shows the board's state as it is.
+function view(){
+  if(!data)return null;
+  if(live)return data;
+  var jobs=data.jobs.map(function(j,i){return i<shown?j:Object.assign({},j,{state:"open",check:null,detail:null,reward:null,result_sha256:null,worker:null})});
+  var ws=data.workers.map(function(w){
+    var mine=jobs.filter(function(j){return j.worker===w.name&&j.state!=="open"});
+    var p=mine.filter(function(j){return j.state==="paid"}).length,n=mine.length;
+    return Object.assign({},w,{checked:n,passed:p,rejected:n-p,acceptance:n?(100*p/n).toFixed(1)+"%":"-",
+      credits:mine.reduce(function(a,j){return a+(j.reward?j.reward.credits:0)},0),
+      history:mine.map(function(j){return j.state==="paid"?"P":"R"}).join("")})});
+  return {jobs:jobs,workers:ws,expect_workers:2,done:shown>=jobs.length};
+}
+
+function spark(h){
+  var n=h.length,W=240,H=46;if(!n)return '<svg class="spark" viewBox="0 0 240 46" preserveAspectRatio="none"><path class="base" d="M0 4H240"/></svg>';
+  var p=0,d="";for(var i=0;i<n;i++){if(h[i]==="P")p++;var x=n<2?W:i*W/(n-1),y=4+(1-p/(i+1))*(H-8)*4;d+=(i?"L":"M")+x.toFixed(1)+" "+Math.min(H-2,y).toFixed(1)}
+  return '<svg class="spark" viewBox="0 0 240 46" preserveAspectRatio="none" aria-hidden="true"><path class="base" d="M0 4H240"/><path d="'+d+'" stroke="'+(h.indexOf("R")>=0?"var(--bad)":"var(--ok)")+'"/></svg>';
+}
+
+function render(){
+  var v=view();if(!v)return;
+  var jobs=v.jobs,done=jobs.filter(function(j){return j.state==="paid"||j.state==="rejected"});
+  var paid=jobs.filter(function(j){return j.state==="paid"}),rej=jobs.filter(function(j){return j.state==="rejected"});
+  $("s-checked").innerHTML=done.length+"<small>/ "+jobs.length+"</small>";
+  $("s-paid").textContent=paid.length;
+  $("s-paid-sub").textContent=paid.reduce(function(a,j){return a+j.reward.credits},0)+" credits in signed tokens";
+  $("ring-paid").setAttribute("stroke-dashoffset",(94.25*(1-(done.length?paid.length/done.length:0))).toFixed(2));
+  $("s-rej").textContent=rej.length;
+  var nc=Object.keys(cheats).length,caught=rej.filter(function(j){return cheats[j.id]}).length;
+  $("s-rej-sub").textContent=nc?caught+" of "+nc+" injected wrong answers caught":"no token issued";
+  var ws=v.workers.slice();while(ws.length<v.expect_workers)ws.push(null);
+  $("workers").innerHTML=ws.map(function(w,i){
+    if(!w)return '<div class="glass wk"><div class="label"><i></i>Worker w'+(i+1)+'</div><div class="num">-</div><div class="sub">waiting to join</div></div>';
+    var rigged=nc&&data.jobs.some(function(j){return j.worker===w.name&&cheats[j.id]});
+    var hist=w.history.split("").map(function(c){return '<i'+(c==="R"?' class="r"':'')+'></i>'}).join("");
+    return '<div class="glass wk"><div class="label"><i class="'+(w.rejected?'r':'g')+'"></i>Worker '+esc(w.name)+(nc?(rigged?' · rigged':' · honest'):'')+'</div>'+
+      '<div class="num'+(w.rejected?'':' acc')+'">'+esc(w.acceptance)+'<small> accepted</small></div>'+
+      '<div class="sub">'+w.passed+' passed · '+w.rejected+' rejected · '+w.credits+' credits · '+esc(w.agent)+'</div>'+spark(w.history)+'<div class="hist">'+hist+'</div></div>'}).join("");
+  $("grid").innerHTML=jobs.map(function(j){return '<button type="button" class="'+j.state+'" aria-pressed="'+(sel===j.id)+'" data-id="'+j.id+'" title="'+esc(j.id+" "+j.kind+" "+j.state)+'" aria-label="'+esc(j.id+", "+j.kind+", "+j.state)+'"></button>'}).join("");
+  $("rows").innerHTML=jobs.map(function(j){
+    var st=j.state==="paid"?"Paid":j.state==="rejected"?"Rejected":j.state==="taken"?"Taken":"Open";
+    return '<tr data-id="'+j.id+'" aria-selected="'+(sel===j.id)+'"><td>'+j.id+'</td><td>'+j.kind+'</td><td>'+esc(j.worker||"-")+'</td><td class="hide">'+esc(j.detail||"")+
+      (cheats[j.id]&&j.state!=="open"?' <span class="inj">injected: '+esc(cheats[j.id])+'</span>':'')+'</td><td><span class="v '+j.state+'">'+st.toUpperCase()+'</span></td></tr>'}).join("");
+  var j=sel&&jobs.filter(function(x){return x.id===sel})[0];
+  if(j){$("detail").innerHTML='<b>'+esc(j.id)+'</b> · '+esc(j.title)+'<br>'+(j.state==="open"?"not checked yet":
+    esc(j.check)+': '+esc(j.detail)+'<br>result sha256 '+esc(j.result_sha256)+
+    (cheats[j.id]?'<br>injected wrong answer: '+esc(cheats[j.id]):'')+
+    (j.reward?'<br>reward: '+j.reward.credits+' credits, nonce '+j.reward.nonce+', signed by '+esc((data.reward_key||"").slice(0,16))+'...<code>'+esc(j.reward.token)+'</code>':'<br>no reward token'))}
+  var s=$("status");
+  if(live)s.innerHTML='<span class="label"><i class="g"></i>Live</span><span>from job.board · <b>'+done.length+' of '+jobs.length+'</b> checked · '+v.workers.length+' of '+v.expect_workers+' workers joined'+(v.done?' · finished':'')+'</span>';
+  else s.innerHTML='<span>Recorded run, seed '+esc(data.seed)+' · replaying <b>'+done.length+' of '+jobs.length+'</b></span><button class="act" type="button" id="again">Replay</button>';
+  var a=$("again");if(a)a.onclick=replay;
+}
+function pick(e){var t=e.target.closest("[data-id]");if(!t)return;sel=t.getAttribute("data-id");render()}
+$("grid").addEventListener("click",pick);$("rows").addEventListener("click",pick);
+
+function replay(){clearInterval(timer);shown=0;render();timer=setInterval(function(){shown++;render();if(shown>=data.jobs.length)clearInterval(timer)},220)}
+function poll(){fetch("state.json",{cache:"no-store"}).then(function(r){return r.json()}).then(function(s){data=s;render();setTimeout(poll,s.done?3000:400)}).catch(function(){setTimeout(poll,2000)})}
+
+fetch("state.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(s){if(!s.live)throw 0;live=true;data=s;$("rep").href="state.json";render();poll()})
+.catch(function(){
+  Promise.all([fetch("report.json").then(function(r){return r.json()}),fetch("cheats.jsonl").then(function(r){return r.ok?r.text():""}).catch(function(){return ""})])
+  .then(function(x){data=x[0];x[1].split("\n").forEach(function(l){if(l.trim()){var c=JSON.parse(l);cheats[c.job]=c.how}});replay()})
+  .catch(function(){$("status").textContent="Could not load the run report."})});
+})();
+</script>
+</body></html>

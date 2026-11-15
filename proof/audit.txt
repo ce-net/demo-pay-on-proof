@@ -1,0 +1,6 @@
+jobs 50; paid 47 (every token verified against the reward key and redeemed once, a second redeem refused)
+injected wrong answers 3; caught 3
+correct answers 47; paid 47
+w1 a-2669c7fb627d: 27 checked, 27 passed, 0 rejected, acceptance 100.0%
+w2 a-6fabb0bc6537: 23 checked, 20 passed, 3 rejected, acceptance 87.0%
+audit ok

@@ -1,0 +1,46 @@
+name: ci
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: unit tests (verifiers, reward tokens, board claim rules)
+        run: cargo test --locked
+      - name: replay the committed run from this clone (seed 68) and compare the report
+        run: scripts/replay.sh
+      - name: the cells on their own (JSON line in, JSON line out)
+        run: |
+          B=target/release/pay-on-proof
+          echo '{"spec":{"kind":"sort","values":[3,1,2]},"result":"[1,2,3]","salt":5}' | $B cell job.check | grep '"pass":true'
+          echo '{"spec":{"kind":"sort","values":[3,1,2]},"result":"[1,2,2]","salt":5}' | $B cell job.check | grep '"pass":false'
+          echo '{"verdict":{"pass":false},"job":"j-01","agent":"a-1","credits":3}' | $B cell reward.issue | grep refused
+          KEY=$(python3 -c 'import json;print(json.load(open("proof/report.json"))["reward_key"])')
+          TOK=$(python3 -c 'import json;print(next(j["reward"]["token"] for j in json.load(open("proof/report.json"))["jobs"] if j["reward"]))')
+          $B verify-token --key "$KEY" "$TOK"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: replay, path: runs/replay }
+      - name: assemble the page with the verified report
+        if: github.ref == 'refs/heads/main'
+        run: mkdir -p _site && cp -r web/* _site/ && cp proof/report.json proof/cheats.jsonl _site/
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with: { path: _site }
+  pages:
+    if: github.ref == 'refs/heads/main'
+    needs: replay
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
